@@ -249,9 +249,9 @@ void USpatialGDKEditorSettings::SetBuildClientWorker(bool bBuild)
 	SaveConfig();
 }
 
-void USpatialGDKEditorSettings::SetStartLocalServerWorker(bool IsEnabled)
+void USpatialGDKEditorSettings::SetStartLocalServerWorker(bool bIsEnabled)
 {
-	bStartLocalServerWorker = IsEnabled;
+	bStartLocalServerWorker = bIsEnabled;
 	SaveConfig();
 }
 
