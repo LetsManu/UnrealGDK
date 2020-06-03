@@ -192,7 +192,7 @@ bool SpatialCommandUtils::GenerateDevAuthToken(bool bIsRunningInChina, FString& 
 	return true;
 }
 
-FProcHandle SpatialCommandUtils::StartLocalReceptionistProxyServer(bool bIsRunningInChina, const FString& CloudDeploymentName, bool &bSuccess)
+FProcHandle SpatialCommandUtils::StartLocalReceptionistProxyServer(bool bIsRunningInChina, const FString& CloudDeploymentName, FString &OutResult, int32 &OutExitCode)
 {
 	FString Command = TEXT("cloud connect external ");
 
@@ -203,8 +203,6 @@ FProcHandle SpatialCommandUtils::StartLocalReceptionistProxyServer(bool bIsRunni
 		Command += SpatialGDKServicesConstants::ChinaEnvironmentArgument;
 	}
 
-	int32 OutExitCode;
-	FString OutResult;
 	FProcHandle ProcHandle;
 
 	void* ReadPipe = nullptr;
@@ -213,25 +211,23 @@ FProcHandle SpatialCommandUtils::StartLocalReceptionistProxyServer(bool bIsRunni
 
 	ProcHandle = FPlatformProcess::CreateProc(*SpatialGDKServicesConstants::SpatialExe, *Command, false, true, true, nullptr, 1 /*PriorityModifer*/, *SpatialGDKServicesConstants::SpatialOSDirectory, WritePipe);
 
+	bool bProcessSucessed = false;
+	bool bProcessFinished = false;
 	if (ProcHandle.IsValid())
 	{
-		for (bool bProcessFinished = false; !bProcessFinished; )
+		while(!bProcessFinished && !bProcessFinished)
 		{
 			bProcessFinished = FPlatformProcess::GetProcReturnCode(ProcHandle, &OutExitCode);
 
 			OutResult = OutResult.Append(FPlatformProcess::ReadPipe(ReadPipe));
+			bProcessSucessed = OutResult.Contains("available");
+
 			FPlatformProcess::Sleep(0.01f);
 		}
 	}
 	else
 	{
 		UE_LOG(LogSpatialCommandUtils, Error, TEXT("Execution failed. '%s' with arguments '%s' in directory '%s' "), *SpatialGDKServicesConstants::SpatialExe, *Command, *SpatialGDKServicesConstants::SpatialOSDirectory);
-	}
-
-	bSuccess = OutResult.Contains("The receptionist proxy is available");
-	if (!bSuccess)
-	{
-		UE_LOG(LogSpatialCommandUtils, Warning, TEXT("Starting the local receptionist proxy server failed. Error Code: %d, Error Message: %s"), OutExitCode, *OutResult);
 	}
 
 	FPlatformProcess::ClosePipe(0, ReadPipe);
